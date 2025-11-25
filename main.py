@@ -12,18 +12,22 @@ def main():
             config = tomllib.load(f)
 
         conversions = config.pop("convert", None)
-        assert isinstance(conversions, list), "Only [[convert]] entries allowed"
-        assert not config, "Only [[convert]] entries allowed"
+        assert isinstance(conversions, list), "Unexpected type: convert"
+        assert not config, f"Unexpected keys: {', '.join(config)}"
     except Exception as e:
-        raise RuntimeError(f"Invalid config.toml: {e}")
+        raise RuntimeError(f"[config.toml] Error: {e}")
 
-    for c in conversions:
+    for i, d in enumerate(conversions, start=1):
         try:
-            _from = c.get("from", None)
-            to = c.get("to", None)
+            _from = d.pop("from", None)
+            to = d.pop("to", None)
 
-            assert isinstance(_from, str), '[[convert]] entry needs from = "..."'
-            assert isinstance(to, str), '[[convert]] entry needs to = "..."'
+            assert isinstance(_from, str), 'Missing from = "..."'
+            assert isinstance(to, str), 'Missing to = "..."'
+
+            layer = d.pop("layer", None)
+
+            assert not d, f"Unexpected keys: {', '.join(d)}"
 
             _from = Path(_from)
             to = Path(to)
@@ -34,21 +38,19 @@ def main():
             if not to.is_absolute():
                 to = (directory / to).resolve()
 
-            layer = c.get("layer", None)
-
             if layer is not None:
-                print(f"Converting {_from} to {to} (layer {layer})")
+                print(f"[Conversion {i}] {_from} (Layer: {layer}) -> {to}")
             else:
-                print(f"Converting {_from} to {to} (first layer)")
+                print(f"[Conversion {i}] {_from} (First Layer) -> {to}")
 
             df = gpd.read_file(_from, layer=layer)
             df = df.to_crs(epsg=4326)
             df.to_file(to)
 
-            print("Done!")
+            print(f"[Conversion {i}] Done")
         except Exception as e:
-            print(f"Conversion failed: {e}")
-            print("Skipped!")
+            print(f"[Conversion {i}] Error: {e}")
+            print(f"[Conversion {i}] Skipped")
 
 
 if __name__ == "__main__":
