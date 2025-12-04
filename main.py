@@ -11,8 +11,8 @@ def main():
         with open(directory / "config.toml", "rb") as f:
             config = tomllib.load(f)
 
-        conversions = config.pop("convert", None)
-        assert isinstance(conversions, list), "Unexpected type: convert"
+        conversions = config.pop("conversion", None)
+        assert isinstance(conversions, list), "Unexpected type: conversion"
         assert not config, f"Unexpected keys: {', '.join(config)}"
     except Exception as e:
         raise RuntimeError(f"[config.toml] Error: {e}")
@@ -22,10 +22,14 @@ def main():
             _from = d.pop("from", None)
             to = d.pop("to", None)
 
+            layer = d.pop("layer", None)
+            columns = d.pop("columns", None)
+
             assert isinstance(_from, str), 'Missing from = "..."'
             assert isinstance(to, str), 'Missing to = "..."'
 
-            layer = d.pop("layer", None)
+            if columns is not None:
+                assert isinstance(columns, list), "Unexpected type: columns"
 
             assert not d, f"Unexpected keys: {', '.join(d)}"
 
@@ -43,7 +47,7 @@ def main():
             else:
                 print(f"[Conversion {i}] {_from} (First Layer) -> {to}")
 
-            df = gpd.read_file(_from, layer=layer)
+            df = gpd.read_file(_from, columns=columns, layer=layer)
             df = df.to_crs(epsg=4326)
             df.to_file(to)
 

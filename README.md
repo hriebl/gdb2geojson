@@ -8,13 +8,14 @@ Edit config.toml and run main.py. Make sure that the geopandas package for Pytho
 
 ### Configuration
 
-Here is an example config.toml. Add more `[[convert]]` entries as needed.
+Here is an example config.toml. Add more `[[conversion]]` entries as needed.
 
 ```
-[[convert]]
+[[conversion]]
 from = "NRS.gdb"
 to = "NRS.geojson"
 layer = "Niederrhein_Schollen"
+columns = ["Scholle"]
 ```
 
 ### License of NRS.gdb

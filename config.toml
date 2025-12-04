@@ -1,4 +1,5 @@
-[[convert]]
+[[conversion]]
 from = "NRS.gdb"
 to = "NRS.geojson"
 layer = "Niederrhein_Schollen"
+columns = ["Scholle"]
