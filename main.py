@@ -2,13 +2,28 @@ import tomllib
 from pathlib import Path
 
 import geopandas as gpd
+import pandas as pd
+
+
+def _last_mtime(_dir):
+    return max(f.stat().st_mtime for f in _dir.iterdir() if f.is_file())
+
+
+def _read_layers(filename, columns, layers):
+    if not layers:
+        layers = gpd.list_layers(filename)["name"]
+
+    for layer in layers:
+        df = gpd.read_file(filename, columns=columns, layer=layer)
+        df.insert(0, "gdb_layer", layer)
+        yield df.to_crs(epsg=4326)
 
 
 def main():
-    directory = Path(__file__).parent
+    _dir = Path(__file__).parent
 
     try:
-        with open(directory / "config.toml", "rb") as f:
+        with open(_dir / "config.toml", "rb") as f:
             config = tomllib.load(f)
 
         conversions = config.pop("conversion", None)
@@ -17,39 +32,42 @@ def main():
     except Exception as e:
         raise RuntimeError(f"[config.toml] Error: {e}")
 
-    for i, d in enumerate(conversions, start=1):
+    for i, conv in enumerate(conversions, start=1):
         try:
-            _from = d.pop("from", None)
-            to = d.pop("to", None)
+            _from = conv.pop("from", None)
+            to = conv.pop("to", None)
 
-            layer = d.pop("layer", None)
-            columns = d.pop("columns", None)
+            layers = conv.pop("layers", None)
+            columns = conv.pop("columns", None)
 
             assert isinstance(_from, str), 'Missing from = "..."'
             assert isinstance(to, str), 'Missing to = "..."'
 
+            if layers is not None:
+                assert isinstance(layers, list), "Unexpected type: layers"
+
             if columns is not None:
                 assert isinstance(columns, list), "Unexpected type: columns"
 
-            assert not d, f"Unexpected keys: {', '.join(d)}"
+            assert not conv, f"Unexpected keys: {', '.join(conv)}"
 
             _from = Path(_from)
             to = Path(to)
 
             if not _from.is_absolute():
-                _from = (directory / _from).resolve()
+                _from = (_dir / _from).resolve()
 
             if not to.is_absolute():
-                to = (directory / to).resolve()
+                to = (_dir / to).resolve()
 
-            if layer is not None:
-                print(f"[Conversion {i}] {_from} (Layer: {layer}) -> {to}")
-            else:
-                print(f"[Conversion {i}] {_from} (First Layer) -> {to}")
+            print(f"[Conversion {i}] {_from} -> {to}")
 
-            df = gpd.read_file(_from, columns=columns, layer=layer)
-            df = df.to_crs(epsg=4326)
-            df.to_file(to)
+            if to.exists() and to.stat().st_mtime >= _last_mtime(_from):
+                print(f"[Conversion {i}] GeoJSON is newer than Geodatabase")
+                print(f"[Conversion {i}] Skipped")
+                continue
+
+            pd.concat(_read_layers(_from, columns, layers)).to_file(to)
 
             print(f"[Conversion {i}] Done")
         except Exception as e:

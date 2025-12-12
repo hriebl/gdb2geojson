@@ -1,5 +1,5 @@
 [[conversion]]
 from = "NRS.gdb"
 to = "NRS.geojson"
-layer = "Niederrhein_Schollen"
+layers = ["Niederrhein_Schollen", "Punkte"]
 columns = ["Scholle"]
