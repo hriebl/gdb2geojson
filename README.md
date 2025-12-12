@@ -14,7 +14,7 @@ Here is an example config.toml. Add more `[[conversion]]` entries as needed.
 [[conversion]]
 from = "NRS.gdb"
 to = "NRS.geojson"
-layer = "Niederrhein_Schollen"
+layers = ["Niederrhein_Schollen", "Punkte"]
 columns = ["Scholle"]
 ```
 
